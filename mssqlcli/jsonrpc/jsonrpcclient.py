@@ -222,7 +222,7 @@ class JsonRpcWriter:
 
         except ValueError as ex:
             logger.debug(u'Send Request encountered exception %s', ex)
-            raise
+            raise ex
 
     def close(self):
         """
@@ -230,8 +230,8 @@ class JsonRpcWriter:
         """
         try:
             self.stream.close()
-        except AttributeError:
-            pass
+        except AttributeError as error:
+            raise error
 
 
 class JsonRpcReader:    # pylint: disable=too-many-instance-attributes
@@ -293,7 +293,7 @@ class JsonRpcReader:    # pylint: disable=too-many-instance-attributes
         except ValueError as ex:
             # response has invalid json object.
             logger.debug(u'JSON RPC Reader on read_response() encountered exception: %s', ex)
-            raise
+            raise ex
 
     def read_next_chunk(self):
         """
@@ -329,7 +329,7 @@ class JsonRpcReader:    # pylint: disable=too-many-instance-attributes
         except ValueError as ex:
             logger.debug(u'JSON RPC Reader on read_next_chunk encountered exception: %s', ex)
             # Stream was closed.
-            raise
+            raise ex
 
     def try_read_headers(self):
         """
@@ -382,10 +382,10 @@ class JsonRpcReader:    # pylint: disable=too-many-instance-attributes
 
             self.expected_content_length = int(self.headers[u'content-length'])
 
-        except ValueError:
+        except ValueError as error:
             # Content-length contained invalid literal for int.
             self.trim_buffer_and_resize(scan_offset + 4)
-            raise
+            raise error
 
         # Pushing read pointer past the newline characters.
         self.read_offset = scan_offset + 4
@@ -439,5 +439,5 @@ class JsonRpcReader:    # pylint: disable=too-many-instance-attributes
         """
         try:
             self.stream.close()
-        except AttributeError:
-            pass
+        except AttributeError as error:
+            raise error
