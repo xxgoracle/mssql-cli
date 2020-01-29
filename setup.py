@@ -38,7 +38,8 @@ install_requirements = [
     'applicationinsights>=0.11.1',
     'future>=0.16.0',
     'wheel>=0.29.0',
-    'enum34>=1.1.6'
+    'enum34>=1.1.6',
+    'pypager>=0.5'
 ]
 
 with open("README.md", "r") as fh:
