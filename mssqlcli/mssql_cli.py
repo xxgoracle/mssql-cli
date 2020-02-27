@@ -119,7 +119,7 @@ class MssqlCli(object):
         if not os.environ.get('LESS'):
             os.environ['LESS'] = '-SRXF'
 
-        os.environ['PAGER'] = default_pager
+        os.environ['PAGER'] = default_pager or ''
         return default_pager
 
     def __init__(self, options):
