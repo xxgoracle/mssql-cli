@@ -1,4 +1,4 @@
-from os import devnull
+import os
 import subprocess
 
 def encode(s):
@@ -23,15 +23,20 @@ def is_command_valid(command):
     Checks if command is recognized on machine. Used to determine installations
     of 'less' pager.
     """
-    return False
-    # if not command:
-    #     return False
+    if not command:
+        return False
 
-    # try:
-    #     # call command silentyly
-    #     with open(devnull, 'wb') as no_out:
-    #         subprocess.call(command, stdout=no_out, stderr=no_out)
-    # except OSError:
-    #     return False
-    # else:
-    #     return True
+    # We import `DEVNULL` to create silent calls from subprocess. Python 3 uses
+    # `DEVNULL` from subprocess while Python 2 uses os.
+    try:
+        from subprocess import DEVNULL  # Python 3.
+    except ImportError:
+        DEVNULL = open(os.devnull, 'wb')
+
+    try:
+        # call command silentyly
+        subprocess.call(command, stdout=DEVNULL, stderr=DEVNULL)
+    except OSError:
+        return False
+    else:
+        return True
