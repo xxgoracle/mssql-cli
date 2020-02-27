@@ -23,14 +23,15 @@ def is_command_valid(command):
     Checks if command is recognized on machine. Used to determine installations
     of 'less' pager.
     """
-    if not command:
-        return False
+    return False
+    # if not command:
+    #     return False
 
-    try:
-        # call command silentyly
-        with open(devnull, 'wb') as no_out:
-            subprocess.call(command, stdout=no_out, stderr=no_out)
-    except OSError:
-        return False
-    else:
-        return True
+    # try:
+    #     # call command silentyly
+    #     with open(devnull, 'wb') as no_out:
+    #         subprocess.call(command, stdout=no_out, stderr=no_out)
+    # except OSError:
+    #     return False
+    # else:
+    #     return True
