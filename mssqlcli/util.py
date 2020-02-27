@@ -21,21 +21,21 @@ def decode(s):
 def is_command_valid(command):
     """
     Checks if command is recognized on machine. Used to determine installations
-    of 'less' pager.
+    of 'less' pager. Python 3 supports silent calls.
     """
     if not command:
         return False
 
-    # We import `DEVNULL` to create silent calls from subprocess. Python 3 uses
-    # `DEVNULL` from subprocess while Python 2 uses os.
+    kwargs = {}
     try:
-        from subprocess import DEVNULL  # Python 3.
+        # sets kwargs to make silent command--only works with Python 3
+        from subprocess import DEVNULL
+        kwargs = {"stdout": DEVNULL, "stderr": DEVNULL}
     except ImportError:
-        DEVNULL = open(os.devnull, 'wb')
+        pass
 
     try:
-        # call command silentyly
-        subprocess.call(command, stdout=DEVNULL, stderr=DEVNULL)
+        subprocess.call(command, **kwargs)
     except OSError:
         return False
     else:
