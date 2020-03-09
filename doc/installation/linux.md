@@ -5,6 +5,7 @@ Stable installations of mssql-cli on Linux are hosted in the [Microsoft Linux So
 - [**Ubuntu**](#Ubuntu)
     - [Ubuntu 14.04 (Trusty)](#ubuntu-1404-Trusty)
     - [Ubuntu 16.04 (Xenial)](#ubuntu-1604-Xenial)
+    - [Ubuntu 18.04 (Bionic)](#ubuntu-1804-Bionic)
 - [**Debian**](#Debian)
     - [Debian 8](#debian-8)
     - [Debian 9](#debian-9)
@@ -54,8 +55,21 @@ sudo apt-get update
 sudo apt-get install mssql-cli
 ```
 
-### Debian
-> `apt-transport-https` is required for importing keys. If not installed, call `sudo apt-get install curl apt-transport-https`.
+#### Ubuntu 18.04 (Bionic)
+```sh
+```sh
+# Import the public repository GPG keys
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+# Register the Microsoft Ubuntu repository
+sudo apt-add-repository https://packages.microsoft.com/ubuntu/18.04/prod
+
+# Update the list of products
+sudo apt-get update
+
+# Install mssql-cli
+sudo apt-get install mssql-cli
+```
 
 #### Debian 8
 ```sh
