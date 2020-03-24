@@ -48,7 +48,6 @@ class TestSpecialCommands:
         yield client
 
         # delete the database objects created
-        client = create_mssql_cli_client()
         try:
             list(client.execute_query('DROP DATABASE {0};'.format(cls.database)))
             list(client.execute_query('DROP INDEX {0} ON {1};'.format(cls.index, cls.table2)))
