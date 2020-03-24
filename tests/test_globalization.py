@@ -22,6 +22,26 @@ import mssqlcli.completion_refresher as completion_refresher
 
 class GlobalizationTests:
     @staticmethod
+    @pytest.fixture(scope='module')
+    def client():
+        """
+        Pytest fixture which creates client and tears down on completion
+        """
+        # create the database objects to test upon
+        test_db = create_test_db()
+
+        # create options with db name
+        options = create_mssql_cli_options()
+        options.database = test_db
+
+        client = create_mssql_cli_client(options)
+        yield client
+
+        # cleanup
+        shutdown(client)
+        clean_up_test_db(test_db)
+
+    @staticmethod
     def run_query(mssqlcliclient, query):
         success = True
         for _, _, status, _, is_error in mssqlcliclient.execute_query(query):
@@ -41,8 +61,11 @@ class GlobalizationTests:
             all_characters = all_characters[next_characters_length:]
             yield next_characters
 
-    charset_dict = {
-        'double': (
+
+class TestGlobalization(GlobalizationTests):
+    test_charset_data = [
+        # double
+        (
             u'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ'
             u'ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ'
             u'０１２３４５６７８９'
@@ -62,7 +85,8 @@ class GlobalizationTests:
             u'甁甂甃甅甆甇疈疉疊疌疍疎疐疓疕疘疛疜疞疢疦疧癅癆癇癈癉癊癋癎癏癐癑癒癓癕癗癘盄盇盉盋盌盓盕盙盚盜盝盞盠盡盢監睝睞睟睠'
             u'〡〢〣〤〥〦〧〨〩'
         ),
-        'four': (
+        # four
+        (
             u'㐀㐁㐂㐃㐄㐅㐆㐇㐈㐉㐊㐋㐌㐍㐎㐏㐐㐑㐒㐓㐔㐕㐖㐗㐘㐙㐚㐛㐜㐝㐞㐟㐠㐡㐢㐣㐤㐥㐦㐧㐨㐩㐪㐫㐬㐭㐮㐯㐰㐱㐲㐳㐴㐵㐶㐷㐸㐹'
             u'㐺㐻㐼㐽㐾㐿㑀㑁㑂㑃㑄㑅㑆㑈㑉㑊㑋㑌㑍㑎㑏㑐㑑㑒㑓㑔㑕㑖㑗㑘㑙㑚㑛㑜㑝㑞㑟㑠㑡㑢㑣㑤㑥㑦㑧㑨㑩㑪㑫㑬㑭㑮㑯㑰㑱㑲㑴㑵'
             u'㑶㑷㑸㑹㑺㑻㑼㑽㑾㑿㒀㒁㒂㒃㒄㒅㒆㒇㒈㒉㒊㒋㒌㒍㒎㒏㒐㒑㒒㒓㒔㒕㒖㒗㒘㒙㒚㒛㒜㒝㒞㒟㒠㒡㒢㒣㒤㒥㒦㒧㒨㒩㒪㒫㒬㒭㒮㒯'
@@ -70,19 +94,25 @@ class GlobalizationTests:
             u'㓪㓫㓬㓭㓮㓯㓰㓱㓲㓳㓴㓵㓶㓷㓸㓹㓺㓻㓼㓽㓾㓿㔀㔁㔂㔃㔄㔅㔆㔇㔈㔉㔊㔋㔌㔍㔎㔏㔐㔑㔒㔓㔔㔕㔖㔗㔘㔙㔚㔛㔜㔝㔞㔟㔠㔡㔢㔣'
             u'㔤㔥㔦㔧㔨㔩㔪㔫㔬㔭㔮㔯㔰㔱㔲㔳㔴㔵㔶㔷㔸㔹㔺㔻㔼㔽㔾㔿㕀㕁㕂㕃㕄㕅㕆㕇㕈㕉㕊㕋㕌㕍㕎㕏㕐㕑㕒㕓㕔㕕㕖㕗㕘㕙㕚㕛㕜㕝'
         ),
-        'mongolian': (
+        # mongolian
+        (
             u'᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙ᠠᠡᠢᠣᠤᠥᠦᠧᠨᠩᠪᠫᠬᠭᠮᠯᠰᠱᠲᠳᠴᠵᠶᠷᠸᠹᠺᠻᠼᠽᠾᠿᡀᡁᡂᡃᡄᡅᡆᡇᡈᡉᡊᡋᡌᡍᡎᡏᡐᡑᡒᡓᡔᡕᡖᡗᡘᡙᡚᡛᡜᡝᡞᡟᡠᡡᡢᡣᡤᡥᡦᡧᡨᡩᡪ'
             u'ᡫᡬᡭᡮᡯᡰᡱᡲᡳᡴᡵᡶᡷᢀᢁᢂᢃᢄᢅᢆᢇᢈᢉᢊᢋᢌᢍᢎᢏᢐᢑᢒᢓᢔᢕᢖᢗᢘᢙᢚᢛᢜᢝᢞᢟᢠᢡᢢᢣᢤᢥᢦᢧᢨᢩ'
         ),
-        'uyghur': (
+        #uyghur
+        (
             u'ﺏﺐﺑﺒﺓﺔﺕﺖﺗﺘﺙﺚﺛﺜﺝﺞﺟﺠﺡﺢﺣﺤﺥﺦﺧﺨﺩﺪﺫﺬﺭﺮﺯﺰﺱﺲﺳﺴﺵﺶﺷﺸﺹﺺﺻﺼﺽﺾﺿﻀﻁﻂﻃﻄﻅﻆﻇﻈﻉﻊﻋﻌﻍﻎﻏﻐﻑﻒﻓﻔﻕﻖﻗﻘﻙﻚﻛﻜﻝﻞﻟﻠﻡ'
             u'ﻢﻣﻤﻥﻦﻧﻨﻩﻪﻫﻬﻭﻮﻯﻰﻱﮀﮁﮂﮃﮄﮅﮆﮇﮈﮉﮊﮋﮌﮍﮎﮏﮐﮑﮒﮓﮔﮕﮖﮗﮘﮙﮚﮛﮜﮝﮞﮟﮠﮡﮢﮣﮤﮥﮦﮧﮨﮩﮪﮫﮬﮭﮮﮯﮰﮱﯚﯛﯜﯝﯞﯟﯠﯡﯢ'
             u'ﯣﯤﯥﯦﯧﯨﯩﯪﯫﯬﯭﯮﯯﯰﯱﯲﯳﯴﯵﯶﯷﯸﯹﯺﯻﯼﯽﯾﯿﺄﺅﺆﺇﺈﺉﺊﺋﺌﺍﺎڡڢڣڤڥڦڧڨکڪګڬڭڮگڰڱڲڳڴڵڶڷڸڹںڻڼ'
             u'ڽھڿۀہۂۃۄۅۆۇۈۉۊۋیۍێۏېۑפֿﭏﭐﭑﭒﭓﭔﭕﭖﭗﭘﭙﭚﭛﭜﭝﭞﭟﭠﭡﭢﭣﭤﭥﭦﭧﭨﭩﭪﭫﭬﭭﭮﭯﭰﭱﭲﭳﭴﭵﭶﭷﭸﭹﭺﭻﭼﭽﭾﭿ'
             u'بةتثجحخدذرزسشصضٻټٽپٿڀځڂڃڄڅچڇڈډڊڋڌڍڎڏڐڑڒړڔڕږڗژڙښڛڜڝڞڟڠ'
         ),
-        'tibetian': u'ༀཀཁགགྷངཅཆཇཉཊཋཌཌྷཎཏཐདདྷནཔཕབབྷམཙཚཛཛྷཝཞཟའཡརལཤཥསཧཨཀྵཪྈྉྊྋ',
-        'yi': (
+        # tibetian'
+        (
+            u'ༀཀཁགགྷངཅཆཇཉཊཋཌཌྷཎཏཐདདྷནཔཕབབྷམཙཚཛཛྷཝཞཟའཡརལཤཥསཧཨཀྵཪྈྉྊྋ'
+        ),
+        # yi
+        (
             u'ꀀꀁꀂꀃꀄꀅꀆꀇꀈꀉꀊꀋꀌꀍꀎꀏꀐꀑꀒꀓꀔꀕꀖꀗꀘꀙꀚꀛꀜꀝꀞꀟꀠꀡꀢꀣꀤꀥꀦꀧꀨꀩꀪꀫꀬꀭꀮꀯꀰꀱꀲꀳꀴꀵꀶꀷꀸꀹꀺꀻꀼꀽꀾꀿꁀꁁꁂꁃꁄꁅꁆꁇꁈꁉꁊꁋꁌꁍꁎꁏꁐꁑꁒꁓꁔ'
             u'ꁕꁖꁗꁘꁙꁚꁛꁜꁝꁞꁟꁠꁡꁢꁣꁤꁥꁦꁧꁨꁩꁪꁫꁬꁭꁮꁯꁰꁱꁲꁳꁴꁵꁶꁷꁸꁹꁺꁻꁼꁽꁾꁿꂀꂁꂂꂃꂄꂅꂆꂇꂈꂉꂊꂋꂌꂍꂎꂏꂐꂑꂒꂓꂔꂕꂖꂗꂘꂙꂚꂛꂜꂝꂞꂟꂠꂡꂢꂣꂤꂥꂦꂧꂨꂩ'
             u'ꂪꂫꂬꂭꂮꂯꂰꂱꂲꂳꂴꂵꂶꂷꂸꂹꂺꂻꂼꂽꂾꂿꃀꃁꃂꃃꃄꃅꃆꃇꃈꃉꃊꃋꃌꃍꃎꃏꃐꃑꃒꃓꃔꃕꃖꃗꃘꃙꃚꃛꃜꃝꃞꃟꃠꃡꃢꃣꃤꃥꃦꃧꃨꃩꃪꃫꃬꃭꃮꃯꃰꃱꃲꃳꃴꃵꃶꃷꃸꃹꃺꃻꃼꃽꃾ'
@@ -91,161 +121,82 @@ class GlobalizationTests:
             u'ꆩꆪꆫꆬꆭꆮꆯꆰꆱꆲꆳꆴꆵꆶꆷꆸꆹꆺꆻꆼꆽꆾꆿꇀꇁꇂꇃꇄꇅꇆꇇꇈꇉꇊꇋꇌꇍꇎꇏꇐꇑꇒꇓꇔꇕꇖꇗꇘꇙꇚꇛꇜꇝꇞꇟꇠꇡꇢꇣꇤꇥꇦꇧꇨꇩꇪꇫꇬꇭꇮꇯꇰꇱꇲꇳꇴꇵꇶꇷꇸꇹꇺꇻꇼ'
             u'ꇽꇾꇿꈀꈁꈂꈃꈄꈅꈆꈇꈈꈉ'
         ),
-        'zang': (
+        # zang
+        (
             u'ꃙꃚꃛꃜꃝꃞꃟꃠꃡꃢꃣꃤꃥꃦꃧꃨꃩꃪꃫꃬꃭꃮꃯꃰꃱꃲꃳꃴꃵꃶꃷꃸꃹꃺꃻꃼꃽꃾꃿꄀꄁꄂꄃꄄꄅꄆꄇꄈꄉꄊꄋꄌꄍꄎꄏꄐꄑꄒꄓꄔꄕꄖꄗꄘꄙꄚꄛꄜꄝꄞꄟꄠꄡꄢꄣꄤꄥꄦꄧꄨꄩꄪꄫꄬꄭ'
             u'ꄮꄯꄰꄱꄲꄳꄴꄵꄶꄷꄸꄹꄺꄻꄼꄽꄾꄿꅀꅁꅂꅃꅄꅅꅆꅇꅈꅉꅊꅋꅌꅍꅎꅏꅐꅑꅒꅓꅔꅕꅖꅗꅘꅙꅚꅛꅜꅝꅞꅟꅠꅡꅢꅣꅤꅥꅦꅧꅨꅩꅪꅫꅬꅭꅮꅯꅰꅱꅲꅳꅴꅵꅶꅷꅸꅹꅺꅻꅼꅽꅾꅿꆀꆁꆂ'
             u'ꆃꆄꆅꆆꆇꆈꆉꆊꆋꆌꆍꆎꆏꆐꆑꆒꆓꆔꆕꆖꆗꆘꆙꆚꆛꆜꆝꆞꆟꆠꆡꆢꆣꆤꆥꆦꆧꆨꆩꆪꆫꆬꆭꆮꆯꆰꆱꆲꆳꆴꆵꆶꆷꆸꆹꆺꆻꆼꆽꆾꆿꇀꇁꇂꇃꇄꇅꇆꇇꇈꇉꇊꇋꇌꇍꇎꇏꇐꇑꇒꇓꇔꇕꇖꇗ'
             u'ꇘꇙꇚꇛꇜꇝꇞꇟꇠꇡꇢꇣꇤꇥꇦꇧꇨꇩꇪꇫꇬꇭꇮꇯꇰꇱꇲꇳꇴꇵꇶꇷꇸꇹꇺꇻꇼꇽꇾꇿꈀꈁꈂꈃꈄꈅꈆꈇꈈꈉꈊꈋꈌꈍꈎꈏꈐꈑꈒꈓꈔꈕꈖꈗꈘꈙꈚꈛꈜꈝꈞꈟꈠꈡꈢꈣꈤꈥꈦꈧꈨꈩꈪꈫꈬ'
             u'ꈭꈮꈯꈰꈱꈲꈳꈴꈵꈶꈷꈸꈹꈺꈻꈼꈽꈾꈿꉀꉁꉂꉃꉄꉅꉆꉇꉈꉉꉊꉋꉌꉍꉎꉏꉐꉑꉒꉓꉔꉕꉖꉗꉘꉙꉚꉛꉜꉝꉞꉟꉠꉡꉢꉣꉤ'
         )
-    }
+    ]
 
-
-class TestGlobalizationResultSet(GlobalizationTests):
-    def test_charset_double(self):
-        self.run_charset_validation('double')
-
-    def test_charset_four(self):
-        self.run_charset_validation('four')
-
-    def test_charset_mongolian(self):
-        self.run_charset_validation('mongolian')
-
-    def test_charset_uyghur(self):
-        self.run_charset_validation('uyghur')
-
-    def test_charset_tibetian(self):
-        self.run_charset_validation('tibetian')
-
-    def test_charset_yi(self):
-        self.run_charset_validation('yi')
-
-    def test_charset_zang(self):
-        self.run_charset_validation('zang')
-
-    def run_charset_validation(self, charset):
+    @pytest.mark.parametrize("charset", test_charset_data)
+    def test_charset(self, charset, client):
         """
             Verify the column names and string values in rows returned by
             select statement are properly encoded as unicode.
         """
         local_machine_name = socket.gethostname().replace('-', '_').replace('.', '_')
-        try:
-            client = create_mssql_cli_client()
 
-            # Each characters in charset is a string with max length 50
-            # Each time in the for loop, the string used for 'create table' and
-            # 'insert into' statement that are executed by client.execute_query().
-            # We validates the query results are the same value we inserted and
-            # they are properly unicode encoded.
-            for characters in self.get_next_characters(charset):
-                test_str = characters
-                col1_name = u'col1_{0}'.format(test_str)
-                col2_name = u'col2_{0}'.format(test_str)
-                table_name = u'#mssqlcli_{0}_{1}_{2}'.format(local_machine_name,
-                                                             random_str(), test_str)
-                setup_query = u"CREATE TABLE {0} ({1} nvarchar(MAX), {2} int);"\
-                    u"INSERT INTO {0} VALUES (N'value_{3}1', 1);"\
-                    u"INSERT INTO {0} VALUES (N'value_{3}2', 2);"\
-                    .format(table_name, col1_name, col2_name, test_str)
+        # Each characters in charset is a string with max length 50
+        # Each time in the for loop, the string used for 'create table' and
+        # 'insert into' statement that are executed by client.execute_query().
+        # We validates the query results are the same value we inserted and
+        # they are properly unicode encoded.
+        for characters in self.get_next_characters(charset):
+            test_str = characters
+            col1_name = u'col1_{0}'.format(test_str)
+            col2_name = u'col2_{0}'.format(test_str)
+            table_name = u'#mssqlcli_{0}_{1}_{2}'.format(local_machine_name,
+                                                         random_str(), test_str)
+            setup_query = u"CREATE TABLE {0} ({1} nvarchar(MAX), {2} int);"\
+                u"INSERT INTO {0} VALUES (N'value_{3}1', 1);"\
+                u"INSERT INTO {0} VALUES (N'value_{3}2', 2);"\
+                .format(table_name, col1_name, col2_name, test_str)
 
-                if not self.run_query(client, setup_query):
-                    assert False #should not fail
+            if not self.run_query(client, setup_query):
+                assert False #should not fail
 
-                select_query = u"SELECT {0}, {1} FROM {2};".format(col1_name, col2_name, table_name)
-                for rows, columns, _, _, is_error in client.execute_query(select_query):
-                    assert not is_error
-                    assert len(columns) == 2
-                    assert columns[0] == col1_name
-                    assert columns[1] == col2_name
-                    assert len(rows) == 2
-                    assert rows[0][0] == u'value_{0}1'.format(test_str)
-                    assert rows[1][0] == u'value_{0}2'.format(test_str)
-        finally:
-            shutdown(client)
+            select_query = u"SELECT {0}, {1} FROM {2};".format(col1_name, col2_name, table_name)
+            for rows, columns, _, _, is_error in client.execute_query(select_query):
+                assert not is_error
+                assert len(columns) == 2
+                assert columns[0] == col1_name
+                assert columns[1] == col2_name
+                assert len(rows) == 2
+                assert rows[0][0] == u'value_{0}1'.format(test_str)
+                assert rows[1][0] == u'value_{0}2'.format(test_str)
 
-class TestGlobalizationMetadata(GlobalizationTests):
-    @staticmethod
-    @pytest.fixture(scope="class")
-    def test_db():
-        db = create_test_db()
-        yield db
-        clean_up_test_db(db)
 
-    def test_schema_metadata_double(self, test_db):
-        self.run_schema_metadata_validation('double', test_db)
+    @pytest.mark.parametrize("charset", test_charset_data)
+    def test_schema_metadata(self, charset, client):
+        self.run_schema_metadata_validation(charset, client)
 
-    def test_schema_metadata_four(self, test_db):
-        self.run_schema_metadata_validation('four', test_db)
+    @pytest.mark.parametrize("charset", test_charset_data)
+    def test_table_metadata(self, charset, client):
+        self.run_schema_metadata_validation(charset, client)
 
-    def test_schema_metadata_mongolian(self, test_db):
-        self.run_schema_metadata_validation('mongolian', test_db)
+    def run_schema_metadata_validation(self, charset, client):
+        new_schemas = []
 
-    def test_schema_metadata_uyghur(self, test_db):
-        self.run_schema_metadata_validation('uyghur', test_db)
+        for characters in self.get_next_characters(charset):
+            schema_name = u'mssqlcli_{0}_{1}_{2}'.format(
+                self.get_local_machine_name(), random_str(), characters)
+            query = u'CREATE SCHEMA {0}'.format(schema_name)
+            if self.run_query(client, query):
+                new_schemas.append(schema_name)
+            else:
+                assert False # should not fail
 
-    def test_schema_metadata_tibetian(self, test_db):
-        self.run_schema_metadata_validation('tibetian', test_db)
-
-    def test_schema_metadata_yi(self, test_db):
-        self.run_schema_metadata_validation('yi', test_db)
-
-    def test_schema_metadata_zang(self, test_db):
-        self.run_schema_metadata_validation('zang', test_db)
-
-    def test_table_metadata_double(self, test_db):
-        self.run_schema_metadata_validation('double', test_db)
-
-    def test_table_metadata_four(self, test_db):
-        self.run_schema_metadata_validation('four', test_db)
-
-    def test_table_metadata_mongolian(self, test_db):
-        self.run_schema_metadata_validation('mongolian', test_db)
-
-    def test_table_metadata_uyghur(self, test_db):
-        self.run_schema_metadata_validation('uyghur', test_db)
-
-    def test_table_metadata_tibetian(self, test_db):
-        self.run_schema_metadata_validation('tibetian', test_db)
-
-    def test_table_metadata_yi(self, test_db):
-        self.run_schema_metadata_validation('yi', test_db)
-
-    def test_table_metadata_zang(self, test_db):
-        self.run_schema_metadata_validation('zang', test_db)
-
-    def run_schema_metadata_validation(self, charset, test_db):
-        try:
-            # setup db
-            test_db_name = test_db
-            client = self.create_mssqlcliclient(test_db_name)
-            new_schemas = []
-
-            for characters in self.get_next_characters(self.charset_dict[charset]):
-                schema_name = u'mssqlcli_{0}_{1}_{2}'.format(
-                    self.get_local_machine_name(), random_str(), characters)
-                query = u'CREATE SCHEMA {0}'.format(schema_name)
-                if self.run_query(client, query):
-                    new_schemas.append(schema_name)
-                else:
-                    assert False # should not fail
-
-            completer = MssqlCompleter(smart_completion=True)
-            completion_refresher.refresh_schemas(completer, client)
-            completions = completer.get_completions(
-                document=Document(u'select * from ', 14, None),
-                complete_event=None, smart_completion=True)
-            db_schemas = set(map(lambda e: e.text, completions))
-            for new_schema in new_schemas:
-                assert u'"{}"'.format(new_schema) in db_schemas
-        finally:
-            shutdown(client)
-
-    @staticmethod
-    def create_mssqlcliclient(database_name=None):
-        options = create_mssql_cli_options()
-        if database_name is not None:
-            options.database = database_name
-        return create_mssql_cli_client(options=options)
+        completer = MssqlCompleter(smart_completion=True)
+        completion_refresher.refresh_schemas(completer, client)
+        completions = completer.get_completions(
+            document=Document(u'select * from ', 14, None),
+            complete_event=None, smart_completion=True)
+        db_schemas = set(map(lambda e: e.text, completions))
+        for new_schema in new_schemas:
+            assert u'"{}"'.format(new_schema) in db_schemas
 
     @staticmethod
     def get_local_machine_name():
