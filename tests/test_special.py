@@ -1,6 +1,7 @@
 import uuid
 import pytest
-from mssqltestutils import create_mssql_cli_client, create_test_db, shutdown
+from mssqltestutils import create_mssql_cli_client, create_mssql_cli_options, \
+                           create_test_db, shutdown, clean_up_test_db
 from mssqlcli.packages.special.main import special_command, execute, NO_QUERY
 
 
@@ -23,9 +24,13 @@ class TestSpecialCommands:
         Pytest fixture which creates client and runs commands, and tears down on completion
         """
         # create the database objects to test upon
-        # test_db = create_test_db()
-        # client = create_mssql_cli_client(database=test_db)
-        client = create_mssql_cli_client()
+        test_db = create_test_db()
+
+        # create options with db name
+        options = create_mssql_cli_options()
+        options.database = test_db
+
+        client = create_mssql_cli_client(options)
         list(client.execute_query('CREATE DATABASE {0};'.format(cls.database)))
         list(client.execute_query('CREATE TABLE {0} (a int, b varchar(25));'
                                   .format(cls.table1)))
@@ -55,6 +60,7 @@ class TestSpecialCommands:
             list(client.execute_query('DROP LOGIN {0}'.format(cls.login)))
         finally:
             shutdown(client)
+            clean_up_test_db(test_db)
 
     def test_list_tables_command(self, client):
         self.command(client, '\\lt', self.table1, min_rows_expected=2,
@@ -88,57 +94,43 @@ class TestSpecialCommands:
         self.command(client, '\\lf', self.function, min_rows_expected=1,
                      rows_expected_pattern_query=1, cols_expected=1, cols_expected_verbose=2)
 
-    def test_show_function_definition_command(self):
-        try:
-            client = create_mssql_cli_client()
-            for rows, col, _, _, _ in client.execute_query('\\sf {0}'.format(self.function)):
-                assert len(rows) == 1
-                assert len(col) == 1
-        finally:
-            shutdown(client)
+    def test_show_function_definition_command(self, client):
+        for rows, col, _, _, _ in client.execute_query('\\sf {0}'.format(self.function)):
+            assert len(rows) == 1
+            assert len(col) == 1
 
-    def test_describe_object_command(self):
-        try:
-            client = create_mssql_cli_client()
-            result_set_count = 0
-            for _ in client.execute_query('\\d {0}'.format(self.function)):
-                result_set_count += 1
+    def test_describe_object_command(self, client):
+        result_set_count = 0
+        for _ in client.execute_query('\\d {0}'.format(self.function)):
+            result_set_count += 1
 
-            assert result_set_count == 2
-        finally:
-            shutdown(client)
+        assert result_set_count == 2
 
     @staticmethod
-    def test_named_queries_commands():
-        try:
-            client = create_mssql_cli_client()
+    def test_named_queries_commands(client):
+        # Save named queries
+        list(client.execute_query('\\sn test123 select 1'))
+        list(client.execute_query('\\sn test234 select 2'))
 
-            # Save named queries
-            list(client.execute_query('\\sn test123 select 1'))
-            list(client.execute_query('\\sn test234 select 2'))
+        # List named queries
+        for rows, col, _, _, _ in client.execute_query('\\n'):
+            assert len(rows) >= 2
+            num_queries = len(rows)
 
-            # List named queries
-            for rows, col, _, _, _ in client.execute_query('\\n'):
-                assert len(rows) >= 2
-                num_queries = len(rows)
+        # Execute named query created above
+        for rows, col, _, _, _ in client.execute_query('\\n test123'):
+            assert len(rows) == 1
+            assert len(col) == 1
 
-            # Execute named query created above
-            for rows, col, _, _, _ in client.execute_query('\\n test123'):
-                assert len(rows) == 1
-                assert len(col) == 1
+        # Delete a named query that was created
+        list(client.execute_query('\\dn test123'))
 
-            # Delete a named query that was created
-            list(client.execute_query('\\dn test123'))
+        # Number of named queries should have reduced by 1
+        for rows, col, _, _, _ in client.execute_query('\\n'):
+            assert num_queries-1 == len(rows)
 
-            # Number of named queries should have reduced by 1
-            for rows, col, _, _, _ in client.execute_query('\\n'):
-                assert num_queries-1 == len(rows)
-
-            # Clean up the second named query created
-            list(client.execute_query('\\dn test234'))
-
-        finally:
-            shutdown(client)
+        # Clean up the second named query created
+        list(client.execute_query('\\dn test234'))
 
     @staticmethod
     def test_add_new_special_command():
