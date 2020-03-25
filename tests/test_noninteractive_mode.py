@@ -22,13 +22,26 @@ class TestNonInteractiveResults:
     Tests non-interactive features.
     """
     @staticmethod
-    @pytest.fixture()
+    @pytest.fixture(scope='class')
     def tmp_filepath():
         """ pytest fixture which returns filepath string and removes the file after tests
         complete. """
         fp = os.path.join(_BASELINE_DIR, "test_query_baseline", "%s.txt" % random_str())
         yield fp
         os.remove(fp)
+
+    @staticmethod
+    @pytest.fixture(scope='class')
+    def test_db():
+        """
+        Pytest fixture which creates test db and tears down on completion
+        """
+        # create the database objects to test upon
+        test_db = create_test_db()
+        yield test_db
+
+        # cleanup
+        clean_up_test_db(test_db) 
 
     @pytest.mark.parametrize("query_str, test_file", test_queries)
     @pytest.mark.timeout(60)
@@ -65,12 +78,12 @@ class TestNonInteractiveResults:
         assert output_query_for_i == output_baseline
 
     @staticmethod
-    @pytest.mark.timeout(60)
-    def test_long_query(tmp_filepath):
+    @pytest.mark.timeout(300)
+    def test_long_query(tmp_filepath, test_db):
         """ Output large query using Python class instance. """
         query_str = "SELECT * FROM STRING_SPLIT(REPLICATE(CAST('X,' AS VARCHAR(MAX)), 1024), ',')"
         try:
-            mssqlcli = create_mssql_cli(interactive_mode=False, output_file=tmp_filepath)
+            mssqlcli = create_mssql_cli(interactive_mode=False, output_file=tmp_filepath, database=test_db)
             output_query = '\n'.join(mssqlcli.execute_query(query_str))
             file_baseline = get_io_paths('big.txt')[1]
             output_baseline = get_file_contents(file_baseline)
