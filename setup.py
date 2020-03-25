@@ -30,7 +30,7 @@ install_requirements = [
     'click >= 4.1,<7.1',
     'argparse >= 1.2.1',
     'Pygments >= 2.0',  # Pygments has to be Capitalcased.
-    'prompt_toolkit >= 2.0.0 , < 2.1.0',
+    'prompt_toolkit>=3.0.4',
     'sqlparse >=0.2.2,<0.3.0',
     'configobj >= 5.0.6',
     'humanize >= 0.5.1',
@@ -38,7 +38,8 @@ install_requirements = [
     'applicationinsights>=0.11.1',
     'future>=0.16.0',
     'wheel>=0.29.0',
-    'enum34>=1.1.6'
+    'enum34>=1.1.6',
+    'pypager>=3.0'
 ]
 
 with open("README.md", "r") as fh:

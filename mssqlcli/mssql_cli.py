@@ -100,7 +100,8 @@ class MssqlCli(object):
         os_environ_pager = os.environ.get('PAGER')
         is_less_installed = is_command_valid(['less', '--version'])
         default_pager = configured_pager or os_environ_pager or \
-                        ('less -SRXF' if is_less_installed else False) or None
+                        ('less -SRXF' if is_less_installed else False) or 'pypager'
+        os.environ['PAGER'] = default_pager
 
         if configured_pager:
             self.logger.info(
@@ -119,8 +120,6 @@ class MssqlCli(object):
         if not os.environ.get('LESS'):
             os.environ['LESS'] = '-SRXF'
 
-        if default_pager is not None:
-            os.environ['PAGER'] = default_pager
         return default_pager
 
     def __init__(self, options):
@@ -160,9 +159,9 @@ class MssqlCli(object):
             pager = self.set_default_pager(c)
             self.prompt_session = None
 
-            # set auto_expand to false if less is detected with auto expand
+            # set auto_expand to false if pypager or less is detected with auto expand
             self.auto_expand = options.auto_vertical_output \
-                or (c['main']['expand'] == 'auto' and pager != 'less -SRXF')
+                or (c['main']['expand'] == 'auto' and pager not in ('pypager', 'less -SRXF'))
             self.multiline = c['main'].as_bool('multi_line')
             self.multiline_mode = c['main'].get('multi_line_mode', 'tsql')
             self.vi_mode = c['main'].as_bool('vi')
@@ -572,6 +571,7 @@ class MssqlCli(object):
 
             if self.interactive_mode and self.auto_expand and self.prompt_session:
                 max_width = self.prompt_session.output.get_size().columns
+                print(max_width)
             else:
                 max_width = None
 
