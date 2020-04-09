@@ -31,7 +31,7 @@ class TestNonInteractiveResults:
         os.remove(fp)
 
     @staticmethod
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope='function')
     def test_db():
         """
         Pytest fixture which creates test db and tears down on completion
@@ -41,7 +41,7 @@ class TestNonInteractiveResults:
         yield test_db
 
         # cleanup
-        clean_up_test_db(test_db) 
+        clean_up_test_db(test_db)
 
     @pytest.mark.parametrize("query_str, test_file", test_queries)
     @pytest.mark.timeout(60)
@@ -96,23 +96,17 @@ class TestNonInteractiveResults:
             shutdown(mssqlcli)
 
     @pytest.mark.timeout(300)
-    def test_multiple_merge(self):
+    def test_multiple_merge(self, test_db):
         """
         Tests query with multiple merges. Requires creation of temp db.
         """
-        try:
-            # create temporary db
-            db_name = create_test_db()
+        file_input, file_baseline = get_io_paths('multiple_merge.txt')
+        text_baseline = get_file_contents(file_baseline)
 
-            file_input, file_baseline = get_io_paths('multiple_merge.txt')
-            text_baseline = get_file_contents(file_baseline)
-
-            # test with -i
-            output_query = self.execute_query_via_subprocess("-i {} -d {}"\
-                                                             .format(file_input, db_name))
-            assert output_query == text_baseline
-        finally:
-            clean_up_test_db(db_name)
+        # test with -i
+        output_query = self.execute_query_via_subprocess("-i {} -d {}"\
+                                                            .format(file_input, test_db))
+        assert output_query == text_baseline
 
     @classmethod
     @pytest.mark.timeout(60)
@@ -148,7 +142,13 @@ class TestNonInteractiveShutdownQuery:
     @pytest.fixture(scope='function')
     def mssqlcli():
         """ Create new mssql-cli instance for each test """
-        return create_mssql_cli(interactive_mode=False)
+        test_db = create_test_db()
+        mssql_cli = create_mssql_cli(interactive_mode=False, database=test_db)
+        yield mssql_cli
+
+        # cleanup
+        clean_up_test_db(test_db)
+        shutdown(mssql_cli)
 
     testdata = [
         "select 1",
@@ -157,7 +157,7 @@ class TestNonInteractiveShutdownQuery:
 
     @staticmethod
     @pytest.mark.parametrize("query_str", testdata)
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(300)
     def test_shutdown_after_query(query_str, mssqlcli):
         """ Runs unit tests on process closure given a query string. """
         print()
@@ -179,8 +179,15 @@ class TestNonInteractiveShutdownOutput:
     def mssqlcli():
         """ Create new mssql-cli instance for each test """
         output_file = os.path.join(_BASELINE_DIR, 'tmp.txt')
-        yield create_mssql_cli(interactive_mode=False, output_file=output_file)
+        test_db = create_test_db()
+        mssql_cli = create_mssql_cli(interactive_mode=False, output_file=output_file,
+                                     database=test_db)
+        yield mssql_cli
+
+        # cleanup
         os.remove(output_file)
+        clean_up_test_db(test_db)
+        shutdown(mssql_cli)
 
     testdata = [
         "select 1",
@@ -189,7 +196,7 @@ class TestNonInteractiveShutdownOutput:
 
     @staticmethod
     @pytest.mark.parametrize("query_str", testdata)
-    @pytest.mark.timeout(60)
+    @pytest.mark.timeout(300)
     def test_shutdown_after_query(query_str, mssqlcli):
         """ Runs unit tests on process closure given a query string. """
         print()

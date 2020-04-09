@@ -26,13 +26,6 @@ class MssqlCliClient:   # pylint: disable=too-few-public-methods
     @staticmethod
     @pytest.fixture(scope='function')
     def client():
-        cl = create_mssql_cli_client()
-        yield cl
-        shutdown(cl)
-
-    @staticmethod
-    @pytest.fixture(scope='class')
-    def client_with_db():
         db_name = create_test_db()
 
         # create options with db name
@@ -139,14 +132,12 @@ class TestMssqlCliClientQuery(MssqlCliClient):
             assert query == test_query
 
     @pytest.mark.unstable
-    def test_schema_table_views_and_columns_query(self, client_with_db):
+    def test_schema_table_views_and_columns_query(self, client):
         """
             Verify mssqlcliclient's tables, views, columns, and schema are populated.
             Note: This test should run against a database that the credentials
                   MSSQL_CLI_USER and MSSQL_CLI_PASSWORD have write access to.
         """
-        client = client_with_db
-
         # create random strings for entities
         tabletest1 = "test_%s" % random_str()
         tabletest2 = "test_%s" % random_str()
@@ -185,12 +176,10 @@ class TestMssqlCliClientQuery(MssqlCliClient):
             self.execute_queries(client, queries_drop)
 
     @pytest.mark.unstable
-    def test_stored_proc_multiple_result_sets(self, client_with_db):
+    def test_stored_proc_multiple_result_sets(self, client):
         """
             Verify the results of running a stored proc with multiple result sets
         """
-        client = client_with_db
-
         create_stored_proc = u"CREATE PROC sp_mssqlcli_multiple_results " \
                         u"AS " \
                         u"BEGIN " \
@@ -248,14 +237,14 @@ class TestMssqlCliClientMultipleStatement(MssqlCliClient):
             assert (is_error and len(rows) == 0) or (not is_error)
 
     @staticmethod
-    def test_mssqlcliclient_multiple_merge(client_with_db):
+    def test_mssqlcliclient_multiple_merge(client):
         """
         Tests query with multiple merges. Requires creation of temp db.
         """
         file_input, _ = get_io_paths('multiple_merge.txt')
         query_input = get_file_contents(file_input)
 
-        for rows, _, status, _, is_error in client_with_db.execute_query(query_input):
+        for rows, _, status, _, is_error in client.execute_query(query_input):
             if is_error:
                 raise AssertionError("Query execution failed: {}".format(status))
             assert () == rows
