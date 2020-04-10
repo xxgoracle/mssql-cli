@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 import os
 import socket
 import time
-import warnings
 from argparse import Namespace
+import pytest
 import mssqlcli.sqltoolsclient as sqltoolsclient
 import mssqlcli.mssqlcliclient as mssqlcliclient
 from mssqlcli.mssql_cli import MssqlCli
@@ -186,3 +186,21 @@ def get_io_paths(test_file_suffix):
     i = os.path.join(_BASELINE_DIR, 'test_query_inputs', 'input_%s' % test_file_suffix)
     o = os.path.join(_BASELINE_DIR, 'test_query_baseline', 'baseline_%s' % test_file_suffix)
     return (i, o)
+
+
+class TestDB:
+    """
+    TestDB creates a test db for any tests inheriting this class, and cleans up resources when
+    the module is complete.
+    """
+    @staticmethod
+    @pytest.fixture(scope='module')
+    def test_db():
+        """
+        Create test db that's accessible to module
+        """
+        db = create_test_db()
+        yield db
+
+        # cleanup
+        clean_up_test_db(db)

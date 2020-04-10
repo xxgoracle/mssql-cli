@@ -4,10 +4,9 @@ import pytest
 from prompt_toolkit.document import Document
 from utility import random_str
 from mssqltestutils import (
+    TestDB,
     create_mssql_cli_client,
     create_mssql_cli_options,
-    create_test_db,
-    clean_up_test_db,
     shutdown
 )
 from mssqlcli.mssqlcompleter import MssqlCompleter
@@ -20,16 +19,13 @@ import mssqlcli.completion_refresher as completion_refresher
 # Please Note: These tests cannot be run offline.
 
 
-class GlobalizationTests:
+class GlobalizationTests(TestDB):
     @staticmethod
     @pytest.fixture(scope='module')
-    def client():
+    def client(test_db):
         """
         Pytest fixture which creates client and tears down on completion
         """
-        # create the database objects to test upon
-        test_db = create_test_db()
-
         # create options with db name
         options = create_mssql_cli_options()
         options.database = test_db
@@ -39,7 +35,6 @@ class GlobalizationTests:
 
         # cleanup
         shutdown(client)
-        clean_up_test_db(test_db)
 
     @staticmethod
     def run_query(mssqlcliclient, query):

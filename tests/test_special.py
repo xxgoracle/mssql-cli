@@ -1,12 +1,16 @@
 import uuid
 import pytest
-from mssqltestutils import create_mssql_cli_client, create_mssql_cli_options, \
-                           create_test_db, shutdown, clean_up_test_db
+from mssqltestutils import (
+    TestDB,
+    create_mssql_cli_client,
+    create_mssql_cli_options,
+    shutdown
+)
 from mssqlcli.packages.special.main import special_command, execute, NO_QUERY
 
 
 # All tests require a live connection to a SQL Server database
-class TestSpecialCommands:
+class TestSpecialCommands(TestDB):
     session_guid = str(uuid.uuid4().hex)
     table1 = 'mssql_cli_table1_{0}'.format(session_guid)
     table2 = 'mssql_cli_table2_{0}'.format(session_guid)
@@ -19,13 +23,10 @@ class TestSpecialCommands:
 
     @classmethod
     @pytest.fixture(scope='class')
-    def client(cls):
+    def client(cls, test_db):
         """
         Pytest fixture which creates client and runs commands, and tears down on completion
         """
-        # create the database objects to test upon
-        test_db = create_test_db()
-
         # create options with db name
         options = create_mssql_cli_options()
         options.database = test_db
@@ -59,7 +60,6 @@ class TestSpecialCommands:
             list(client.execute_query('DROP LOGIN {0}'.format(cls.login)))
         finally:
             shutdown(client)
-            clean_up_test_db(test_db)
 
     def test_list_tables_command(self, client):
         self.command(client, '\\lt', self.table1, min_rows_expected=2,

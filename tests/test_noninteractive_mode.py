@@ -5,9 +5,8 @@ import os
 import subprocess
 import pytest
 from mssqltestutils import (
+    TestDB,
     create_mssql_cli,
-    create_test_db,
-    clean_up_test_db,
     random_str,
     shutdown,
     test_queries,
@@ -17,7 +16,7 @@ from mssqltestutils import (
 )
 
 
-class TestNonInteractiveResults:
+class TestNonInteractiveResults(TestDB):
     """
     Tests non-interactive features.
     """
@@ -29,19 +28,6 @@ class TestNonInteractiveResults:
         fp = os.path.join(_BASELINE_DIR, "test_query_baseline", "%s.txt" % random_str())
         yield fp
         os.remove(fp)
-
-    @staticmethod
-    @pytest.fixture(scope='function')
-    def test_db():
-        """
-        Pytest fixture which creates test db and tears down on completion
-        """
-        # create the database objects to test upon
-        test_db = create_test_db()
-        yield test_db
-
-        # cleanup
-        clean_up_test_db(test_db)
 
     @pytest.mark.parametrize("query_str, test_file", test_queries)
     @pytest.mark.timeout(60)
@@ -83,7 +69,8 @@ class TestNonInteractiveResults:
         """ Output large query using Python class instance. """
         query_str = "SELECT * FROM STRING_SPLIT(REPLICATE(CAST('X,' AS VARCHAR(MAX)), 1024), ',')"
         try:
-            mssqlcli = create_mssql_cli(interactive_mode=False, output_file=tmp_filepath, database=test_db)
+            mssqlcli = create_mssql_cli(interactive_mode=False, output_file=tmp_filepath,
+                                        database=test_db)
             output_query = '\n'.join(mssqlcli.execute_query(query_str))
             file_baseline = get_io_paths('big.txt')[1]
             output_baseline = get_file_contents(file_baseline)
@@ -134,20 +121,18 @@ class TestNonInteractiveResults:
         return output.decode("utf-8").replace('\r', '').strip()
 
 
-class TestNonInteractiveShutdownQuery:
+class TestNonInteractiveShutdownQuery(TestDB):
     """
     Ensures that client session has shut down after mssql-cli runs in non-interactive mode.
     """
     @staticmethod
     @pytest.fixture(scope='function')
-    def mssqlcli():
+    def mssqlcli(test_db):
         """ Create new mssql-cli instance for each test """
-        test_db = create_test_db()
         mssql_cli = create_mssql_cli(interactive_mode=False, database=test_db)
         yield mssql_cli
 
         # cleanup
-        clean_up_test_db(test_db)
         shutdown(mssql_cli)
 
     testdata = [
@@ -169,24 +154,22 @@ class TestNonInteractiveShutdownQuery:
                 tools_service_process.poll() is not None
 
 
-class TestNonInteractiveShutdownOutput:
+class TestNonInteractiveShutdownOutput(TestDB):
     """
     Ensures that client session has shut down after mssql-cli runs in non-interactive mode,
     with -o enabled.
     """
     @staticmethod
     @pytest.fixture(scope='function')
-    def mssqlcli():
+    def mssqlcli(test_db):
         """ Create new mssql-cli instance for each test """
         output_file = os.path.join(_BASELINE_DIR, 'tmp.txt')
-        test_db = create_test_db()
         mssql_cli = create_mssql_cli(interactive_mode=False, output_file=output_file,
                                      database=test_db)
         yield mssql_cli
 
         # cleanup
         os.remove(output_file)
-        clean_up_test_db(test_db)
         shutdown(mssql_cli)
 
     testdata = [

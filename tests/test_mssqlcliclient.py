@@ -6,11 +6,10 @@ import pytest
 import mssqlcli.sqltoolsclient as sqltoolsclient
 from mssqlcli.jsonrpc.jsonrpcclient import JsonRpcWriter
 from mssqltestutils import (
+    TestDB,
     create_mssql_cli,
     create_mssql_cli_options,
     create_mssql_cli_client,
-    create_test_db,
-    clean_up_test_db,
     shutdown,
     random_str,
     get_io_paths,
@@ -20,24 +19,21 @@ from mssqltestutils import (
 
 # Please Note: These tests cannot be run offline.
 
-class MssqlCliClient:   # pylint: disable=too-few-public-methods
+class MssqlCliClient(TestDB):   # pylint: disable=too-few-public-methods
     """ Creates client fixture to be used for tests. """
 
     @staticmethod
     @pytest.fixture(scope='function')
-    def client():
-        db_name = create_test_db()
-
+    def client(test_db):
         # create options with db name
         options = create_mssql_cli_options()
-        options.database = db_name
+        options.database = test_db
 
         cl = create_mssql_cli_client(options)
         yield cl
 
         # cleanup
         shutdown(cl)
-        clean_up_test_db(db_name)
 
 class TestMssqlCliClientConnection(MssqlCliClient):
     """
