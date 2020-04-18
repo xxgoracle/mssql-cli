@@ -28,6 +28,3 @@ RUN apt-get install -y mssql-cli
 
 # Installs missing requirements
 RUN apt-get install -y -f
-
-# Non-interactive test
-RUN mssql-cli -Q "select 1"

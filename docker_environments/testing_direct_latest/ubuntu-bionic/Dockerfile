@@ -1,4 +1,4 @@
-FROM debian:8
+FROM ubuntu:18.04
 
 ARG MSSQL_CLI_SERVER
 ARG MSSQL_CLI_DATABASE
@@ -11,7 +11,7 @@ ENV MSSQL_CLI_USER=$MSSQL_CLI_USER
 ENV MSSQL_CLI_PASSWORD=$MSSQL_CLI_PASSWORD
 
 RUN apt-get update
-RUN apt-get -y install wget curl
+RUN apt-get -y install wget sudo curl
 RUN apt-get -y install software-properties-common
 RUN apt-get -y install apt-transport-https
 
@@ -21,6 +21,3 @@ RUN dpkg -i mssql-cli-dev-latest.deb; exit 0
 
 # Installs missing requirements
 RUN apt-get install -y -f
-
-# Non-interactive test
-RUN mssql-cli -Q "select 1"

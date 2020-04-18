@@ -16,6 +16,3 @@ RUN yum install -y wget libicu libunwind less
 
 RUN wget https://mssqlcli.blob.core.windows.net/daily/rpm/mssql-cli-dev-latest.rpm
 RUN yum install -y mssql-cli-dev-latest.rpm
-
-# Non-interactive test
-RUN mssql-cli -Q "select 1"

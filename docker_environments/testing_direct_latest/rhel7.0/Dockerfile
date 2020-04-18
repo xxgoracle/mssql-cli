@@ -1,4 +1,4 @@
-FROM registry.redhat.io/rhel7.1
+FROM registry.redhat.io/rhel7.0
 
 ARG MSSQL_CLI_SERVER
 ARG MSSQL_CLI_DATABASE
@@ -17,6 +17,3 @@ RUN yum install -y wget libicu libunwind less
 
 RUN wget https://mssqlcli.blob.core.windows.net/daily/rpm/mssql-cli-dev-latest.rpm
 RUN rpm -i mssql-cli-dev-latest.rpm
-
-# Non-interactive test
-RUN mssql-cli -Q "select 1"
